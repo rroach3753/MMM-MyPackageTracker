@@ -10,13 +10,14 @@ Module.register("MMM-MyPackageTracker", {
     statusFilter: [],          // ["in_transit", "out_for_delivery", "delivered", ...]
     maxItems: 12,
     sortBy: "time_updated",    // "time_updated" | "eta" | "status"
-    // Extras
+    // UI extras
     showHeaderCount: true,
     showCarrierIcons: true,
     groupByStatus: true,
     highlightOutForDelivery: true,
     showDeliveredToday: true,
-    openOnClick: true
+    openOnClick: true,
+    iconSize: 12               // NEW: pixel size for carrier icons (min 8)
   },
 
   start() {
@@ -60,8 +61,16 @@ Module.register("MMM-MyPackageTracker", {
         const icon = document.createElement("span");
         icon.className = "ot-icon";
         const img = document.createElement("img");
-        img.src = p._iconPath; // served from /MMM-MyPackageTracker/icons/*.svg
+        img.src = p._iconPath; // Simple Icons CDN
         img.alt = p.carrier || "";
+
+        // size control (inline to avoid CSS overrides)
+        const s = Math.max(8, Number(this.config.iconSize || 12));
+        img.style.width = s + "px";
+        img.style.height = s + "px";
+        icon.style.width = (s + 2) + "px";
+        icon.style.height = (s + 2) + "px";
+
         icon.appendChild(img);
         title.appendChild(icon);
       }
