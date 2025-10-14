@@ -1,9 +1,8 @@
 {
   "name": "MMM-MyPackageTracker",
-  "version": "1.1.4",
-  "description": "MagicMirror\u00b2 module to display parcels from OneTracker with grouping, delivered-today badge, and Simple Icons brand marks",
+  "version": "1.1.5",
+  "description": "MagicMirror\u00b2 module",
   "main": "MMM-MyPackageTracker.js",
-  "author": "Rickey Roach + Copilot",
   "license": "MIT",
   "dependencies": {
     "node-fetch": "^2.6.12",
