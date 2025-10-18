@@ -10,6 +10,7 @@ Module.register("MMM-MyPackageTracker", {
     statusFilter: [],          // ["in_transit", "out_for_delivery", "delivered", ...]
     maxItems: 12,
     sortBy: "time_updated",    // "time_updated" | "eta" | "status"
+
     // UI extras
     showHeaderCount: true,
     showCarrierIcons: true,
@@ -17,7 +18,11 @@ Module.register("MMM-MyPackageTracker", {
     highlightOutForDelivery: true,
     showDeliveredToday: true,
     openOnClick: true,
-    iconSize: 12               // pixel size for carrier icons (min 8)
+    iconSize: 12,              // pixel size for carrier icons (min 8)
+
+    // NEW in v1.1.8
+    preferCarrierStatusText: true, // prefer carrier-provided tracking_status_text when present
+    statusCase: "title"           // "title" | "sentence" | "original"
   },
 
   start() {
@@ -26,6 +31,49 @@ Module.register("MMM-MyPackageTracker", {
     this.totalCount = 0;
     this.deliveredTodayCount = 0;
     this.sendSocketNotification("OT_CONFIG", this.config);
+  },
+
+  // Map raw statuses to friendly labels
+  STATUS_LABELS: {
+    pre_transit: 'Pre-transit',
+    in_transit: 'In transit',
+    out_for_delivery: 'Out for delivery',
+    delivered: 'Delivered',
+    available_for_pickup: 'Available for pickup',
+    exception: 'Exception',
+    failure: 'Delivery failed',
+    delayed: 'Delayed',
+    return_to_sender: 'Return to sender',
+    label_created: 'Label created',
+    info_received: 'Information received',
+    pickup: 'Pickup',
+    pending: 'Pending',
+    unknown: 'Unknown'
+  },
+
+  _formatCase(str) {
+    const mode = (this.config.statusCase || 'title').toLowerCase();
+    if (!str) return '';
+    if (mode === 'original') return str;
+    if (mode === 'sentence') {
+      const s = str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+      return s;
+    }
+    // title case
+    return str.toLowerCase().split(/\s+/).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+  },
+
+  friendlyStatus(p) {
+    try {
+      if (this.config.preferCarrierStatusText && p.tracking_status_text && String(p.tracking_status_text).trim()) {
+        return this._formatCase(String(p.tracking_status_text).trim());
+      }
+      const key = String(p.tracking_status || '').toLowerCase().replace(/\s+/g,'_');
+      const label = this.STATUS_LABELS[key];
+      if (label) return label;
+      const fallback = String(p.tracking_status || '').replace(/_/g,' ').trim();
+      return this._formatCase(fallback);
+    } catch(e) { return ''; }
   },
 
   getStyles() { return ["MMM-MyPackageTracker.css"]; },
@@ -88,10 +136,13 @@ Module.register("MMM-MyPackageTracker", {
 
       left.appendChild(title);
 
+      // Subline: Status • Description • Location
       const sub = document.createElement("div");
       sub.className = "ot-sub";
       const parts = [];
-      if (p.tracking_status_text || p.tracking_status) parts.push(String(p.tracking_status_text || p.tracking_status));
+      const st = this.friendlyStatus(p);
+      if (st) parts.push(st);
+      if (p.tracking_status_description) parts.push(String(p.tracking_status_description));
       if (p.tracking_location) parts.push(p.tracking_location);
       sub.innerText = parts.join(" • ");
       left.appendChild(sub);
