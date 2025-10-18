@@ -3,7 +3,12 @@
 
 All notable changes to this project will be documented in this file.
 
-## [1.1.6] - 2025-10-18
+## [1.1.7] - 2025-10-18
+### Fixed
+- Ignore implausible/sentinel timestamps (e.g., `1001-01-01T00:00:00Z`) when choosing **Delivered / ETA / Updated** label and time.
+- Prefer Delivered > ETA > Updated only when the timestamp is plausible; otherwise suppress time.
+
+## [1.1.6] - 2025-10-14
 ### Fixed
 - Parse OneTracker timestamps robustly (seconds vs milliseconds vs ISO) to avoid epoch/1970 dates.
 - Show context-aware time labels: **Delivered**, **ETA**, or **Updated**.

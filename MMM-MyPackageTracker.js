@@ -7,22 +7,21 @@ Module.register("MMM-MyPackageTracker", {
     password: "",
     refreshInterval: 5 * 60 * 1000,
     showArchived: false,
-    statusFilter: [],          // ["in_transit", "out_for_delivery", "delivered", ...]
+    statusFilter: [],
     maxItems: 12,
-    sortBy: "time_updated",    // "time_updated" | "eta" | "status"
-    // UI extras
+    sortBy: "time_updated",
     showHeaderCount: true,
     showCarrierIcons: true,
     groupByStatus: true,
     highlightOutForDelivery: true,
     showDeliveredToday: true,
     openOnClick: true,
-    iconSize: 12               // pixel size for carrier icons (min 8)
+    iconSize: 12
   },
 
   start() {
     this.loaded = false;
-    this.groups = {}; // grouped parcels by status
+    this.groups = {};
     this.totalCount = 0;
     this.deliveredTodayCount = 0;
     this.sendSocketNotification("OT_CONFIG", this.config);
@@ -53,7 +52,6 @@ Module.register("MMM-MyPackageTracker", {
       const left = document.createElement("div");
       left.className = "ot-left";
 
-      // Carrier icon + title
       const title = document.createElement("div");
       title.className = "ot-title";
 
@@ -61,19 +59,13 @@ Module.register("MMM-MyPackageTracker", {
         const icon = document.createElement("span");
         icon.className = "ot-icon";
         const img = document.createElement("img");
-        img.src = p._iconPath; // Simple Icons CDN
+        img.src = p._iconPath;
         img.alt = p.carrier || "";
         img.onerror = () => { try { icon.remove(); } catch(_) {} };
-
-        // size control (inline to avoid CSS overrides)
         const s = Math.max(8, Number(this.config.iconSize || 12));
-        img.style.width = s + "px";
-        img.style.height = s + "px";
-        icon.style.width = (s + 2) + "px";
-        icon.style.height = (s + 2) + "px";
-
-        icon.appendChild(img);
-        title.appendChild(icon);
+        img.style.width = s + "px"; img.style.height = s + "px";
+        icon.style.width = (s + 2) + "px"; icon.style.height = (s + 2) + "px";
+        icon.appendChild(img); title.appendChild(icon);
       }
 
       const carrier = document.createElement("span");
@@ -100,10 +92,7 @@ Module.register("MMM-MyPackageTracker", {
       right.className = "ot-right";
       const timeStr = p._displayTime || "";
       if (timeStr) {
-        const t = document.createElement("div");
-        t.className = "ot-time";
-        t.innerText = timeStr;
-        right.appendChild(t);
+        const t = document.createElement("div"); t.className = "ot-time"; t.innerText = timeStr; right.appendChild(t);
       }
 
       if (this.config.openOnClick && p.tracking_url) {
@@ -111,44 +100,23 @@ Module.register("MMM-MyPackageTracker", {
         row.addEventListener("click", () => window.open(p.tracking_url, "_blank", "noopener"));
       }
 
-      row.appendChild(left);
-      row.appendChild(right);
-
+      row.appendChild(left); row.appendChild(right);
       return row;
     };
 
-    const addGroup = (label) => {
-      const g = document.createElement("div");
-      g.className = "ot-group";
-      g.innerText = label;
-      wrapper.appendChild(g);
-    };
-
-    const pushList = (arr) => {
-      const list = document.createElement("div");
-      list.className = "ot-list";
-      arr.slice(0, this.config.maxItems).forEach(p => list.appendChild(buildRow(p)));
-      wrapper.appendChild(list);
-    };
+    const addGroup = (label) => { const g = document.createElement("div"); g.className = "ot-group"; g.innerText = label; wrapper.appendChild(g); };
+    const pushList = (arr) => { const list = document.createElement("div"); list.className = "ot-list"; arr.slice(0, this.config.maxItems).forEach(p => list.appendChild(buildRow(p))); wrapper.appendChild(list); };
 
     if (this.config.groupByStatus) {
       const order = ["out_for_delivery", "in_transit", "delivered_today", "other"];
       order.forEach(key => {
         const items = this.groups[key] || [];
         if (!items.length) return;
-        const label = key === "out_for_delivery" ? "Out for delivery" :
-                      key === "in_transit" ? "In transit" :
-                      key === "delivered_today" ? "Delivered today" : "Other";
-        addGroup(label);
-        pushList(items);
+        const label = key === "out_for_delivery" ? "Out for delivery" : key === "in_transit" ? "In transit" : key === "delivered_today" ? "Delivered today" : "Other";
+        addGroup(label); pushList(items);
       });
     } else {
-      const flat = [
-        ...(this.groups.out_for_delivery || []),
-        ...(this.groups.in_transit || []),
-        ...(this.groups.delivered_today || []),
-        ...(this.groups.other || [])
-      ];
+      const flat = [ ...(this.groups.out_for_delivery || []), ...(this.groups.in_transit || []), ...(this.groups.delivered_today || []), ...(this.groups.other || []) ];
       pushList(flat);
     }
 
@@ -160,7 +128,6 @@ Module.register("MMM-MyPackageTracker", {
       const parcels = Array.isArray(payload?.parcels) ? payload.parcels : [];
       this.totalCount = payload?.totalCount || parcels.length;
       this.deliveredTodayCount = payload?.deliveredTodayCount || 0;
-      // Group
       this.groups = { out_for_delivery: [], in_transit: [], delivered_today: [], other: [] };
       parcels.forEach(p => {
         if (p._deliveredToday) this.groups.delivered_today.push(p);
@@ -168,15 +135,12 @@ Module.register("MMM-MyPackageTracker", {
         else if ((p.tracking_status || '').toLowerCase() === 'in_transit') this.groups.in_transit.push(p);
         else this.groups.other.push(p);
       });
-      this.loaded = true;
-      this.updateDom(300);
+      this.loaded = true; this.updateDom(300);
     } else if (notification === "OT_DELIVERED") {
       this.sendNotification("ONETRACKER_DELIVERED", payload);
     } else if (notification === "OT_ERROR") {
-      this.loaded = true;
-      this.groups = {}; this.totalCount = 0; this.deliveredTodayCount = 0;
-      Log.error("[MMM-MyPackageTracker] " + payload);
-      this.updateDom(300);
+      this.loaded = true; this.groups = {}; this.totalCount = 0; this.deliveredTodayCount = 0;
+      Log.error("[MMM-MyPackageTracker] " + payload); this.updateDom(300);
     }
   }
 });
