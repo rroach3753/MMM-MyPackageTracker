@@ -3,6 +3,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.1.6] - 2025-10-18
+### Fixed
+- Parse OneTracker timestamps robustly (seconds vs milliseconds vs ISO) to avoid epoch/1970 dates.
+- Show context-aware time labels: **Delivered**, **ETA**, or **Updated**.
+
 ## [1.1.5] - 2025-10-14
 ### Fixed
 - Correct **USPS** Simple Icons slug to `usps` and added case-insensitive mapping for common names.

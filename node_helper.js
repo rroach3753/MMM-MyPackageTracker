@@ -24,9 +24,25 @@ function resolveLogo(p){
     const key = String(p.carrier || '').trim().toLowerCase();
     const slug = SLUGS.get(key);
     return slug ? `https://cdn.simpleicons.org/${slug}` : null;
-  } catch (e) {
-    return null;
+  } catch (e) { return null; }
+}
+
+// --- Time parser: supports ms, s, numeric strings, and ISO strings ---
+function parseTimeToDayjs(v, dayjs) {
+  if (v == null) return null;
+  if (typeof v === 'number') {
+    const ms = v > 1e12 ? v : v * 1000; // seconds -> ms heuristic
+    return dayjs(ms);
   }
+  if (typeof v === 'string') {
+    const n = Number(v);
+    if (!Number.isNaN(n) && n > 0) {
+      const ms = n > 1e12 ? n : n * 1000;
+      return dayjs(ms);
+    }
+    return dayjs(v); // ISO
+  }
+  return null;
 }
 
 module.exports = NodeHelper.create({
@@ -91,11 +107,19 @@ module.exports = NodeHelper.create({
     const todayEnd = now.endOf('day');
 
     items.forEach(p => {
-      p._iconPath = resolveLogo(p); // may be null; UI handles this
-      const delivered = p.tracking_time_delivered ? dayjs(p.tracking_time_delivered) : null;
-      p._deliveredToday = delivered ? delivered.isAfter(todayStart) && delivered.isBefore(todayEnd) : false;
-      const pick = p.tracking_time_delivered || p.tracking_time_estimated || p.time_updated;
-      p._displayTime = pick ? dayjs(pick).format('MMM D, h:mm A') : '';
+      // icon
+      p._iconPath = resolveLogo(p);
+
+      // delivered today flag
+      const deliveredD = parseTimeToDayjs(p.tracking_time_delivered, dayjs);
+      p._deliveredToday = deliveredD ? deliveredD.isAfter(todayStart) && deliveredD.isBefore(todayEnd) : false;
+
+      // context-aware label/time: Delivered > ETA > Updated
+      const hasETA = !!p.tracking_time_estimated;
+      const labelPrefix = deliveredD ? 'Delivered' : (hasETA ? 'ETA' : 'Updated');
+      const pickRaw = deliveredD ? p.tracking_time_delivered : (hasETA ? p.tracking_time_estimated : p.time_updated);
+      const pick = parseTimeToDayjs(pickRaw, dayjs);
+      p._displayTime = pick ? `${labelPrefix} ${pick.format('MMM D, h:mm A')}` : '';
     });
 
     const sortBy = this.config?.sortBy || 'time_updated';
