@@ -1,4 +1,4 @@
-/* MMM-MyPackageTracker.js (icons reliability + fallback, brightness-ready) */
+/* MMM-MyPackageTracker.js — v2.0.2 */
 Module.register("MMM-MyPackageTracker", {
   defaults: {
     email: "",
@@ -17,6 +17,9 @@ Module.register("MMM-MyPackageTracker", {
     showDeliveredToday: true,
     openOnClick: true,
     iconSize: 16,
+
+    // icon color control (CDN tint). Set to e.g. "ffffff" for white, or null for brand color
+    iconColor: null,
 
     // debug
     debug: false
@@ -56,7 +59,7 @@ Module.register("MMM-MyPackageTracker", {
     }
   },
 
-  // ---- helpers ----
+  // helpers
   _u: {
     coerce: (v) => {
       if (v === undefined || v === null) return null;
@@ -72,38 +75,42 @@ Module.register("MMM-MyPackageTracker", {
     return m[key] || this._u.title(key);
   },
 
-  // ==== ICON SECTION (updated) ====
+  // icon normalization + mapping
   normalizeCarrierName(name) {
     if (!name) return null;
     const s = String(name).toLowerCase()
-      .replace(/[._,()]/g, " ")
+      .replace(/[®™.,_()]/g, " ")
       .replace(/\s+/g, " ")
       .trim();
     return s || null;
   },
 
   carrierSlugMap: {
-    // --- USPS / United States Postal Service ---
+    // USPS / United States Postal Service
     "usps": "unitedstatespostalservice",
-    "u s postal service": "unitedstatespostalservice", // "U.S. Postal Service" -> dots removed by normalize
+    "u s postal service": "unitedstatespostalservice",
     "united states postal service": "unitedstatespostalservice",
     "united states postal service usps": "unitedstatespostalservice",
-    "united states post office": "unitedstatespostalservice", // occasional variant in feeds
-    // --- UPS ---
+    "united states post office": "unitedstatespostalservice",
+
+    // UPS
     "ups": "ups",
     "united parcel service": "ups",
-    "ups ground": "ups", // service-level appended
-    "ups®": "ups", // if normalize left the mark
-    // (normalizeCarrierName removes punctuation so "ups®" often becomes "ups")
-    // --- Other major carriers ---
+    "ups ground": "ups",
+
+    // Common North America
     "fedex": "fedex",
     "dhl": "dhl",
     "dhl express": "dhl",
     "canada post": "canadapost",
     "canada post corporation": "canadapost",
+
+    // Amazon
     "amazon": "amazon",
     "amazon logistics": "amazon",
     "amazon shipping": "amazon",
+
+    // International samples (extend as needed)
     "royal mail": "royalmail",
     "dpd": "dpd",
     "hermes": "evri",
@@ -133,10 +140,10 @@ Module.register("MMM-MyPackageTracker", {
       const guess = norm.replace(/\s+/g, "");
       if (/^[a-z0-9-]+$/.test(guess)) slug = guess; // best-effort
     }
-    return slug ? `https://cdn.simpleicons.org/${slug}` : null;
+    if (!slug) return null;
+    const color = this.config.iconColor ? `/${this.config.iconColor}` : "";
+    return `https://cdn.simpleicons.org/${slug}${color}`;
   },
-
-  // ==== end ICON SECTION ====
 
   _sortParcels(list) {
     const by = this.config.sortBy;
@@ -207,7 +214,7 @@ Module.register("MMM-MyPackageTracker", {
       const row = document.createElement("div");
       row.className = "mmp-row";
 
-      // ----- ICON (with fallback + onerror) -----
+      // Icon
       if (this.config.showCarrierIcons) {
         const iconUrl = this.simpleIconUrlForCarrier(p.carrier);
         if (this.config.debug && !iconUrl && p.carrier) {
@@ -223,7 +230,6 @@ Module.register("MMM-MyPackageTracker", {
         row.appendChild(img);
       }
 
-      // ----- TEXTS -----
       const main = document.createElement("div");
       main.className = "mmp-main";
       const carrierText = this._u.coerce(p.carrier) || "—";

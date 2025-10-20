@@ -1,5 +1,16 @@
 # Changelog
 
+## 2.0.2 (2025-10-20)
+
+**Fixes**
+- Ensure **USPS** and **UPS** always render by expanding the alias map.
+- Keep CDN icon requests stable via Simple Icons color CDN; fall back to local SVG if a brand icon fails.
+
+**Enhancements**
+- Optional `config.iconColor` (e.g., `"ffffff"`) to tint icons from the CDN while keeping CSS brightness.
+
+Files changed: `MMM-MyPackageTracker.js`, `MMM-MyPackageTracker.css`, `public/icons/fallback-package.svg`, `package.json`.
+
 ## What’s new in v2.0.1
 
 ### 🖼️ Icon reliability (no more blank spots)
