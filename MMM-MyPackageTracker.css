@@ -10,8 +10,4 @@
 .mmp-row.mmp-ofd{ background: rgba(255,215,0,.08); border-left:2px solid #ffd700; padding-left:4px; border-radius:2px; }
 .mmp-badge{ background:#2ea043; color:#fff; padding:1px 6px; border-radius:10px; font-size:10px; margin-left:6px; }
 
-/* Force icons to appear light on dark backgrounds */
-.mmp-icon--tint {
-  filter: brightness(0) invert(1) contrast(1.05);
-  opacity: 0.95;
-}
+.mmp-icon--tint { filter: brightness(0) invert(0.9); }
