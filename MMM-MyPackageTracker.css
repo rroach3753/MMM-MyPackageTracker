@@ -13,7 +13,7 @@
 /* Force icons to appear as light glyphs on dark backgrounds */
 .mmp-icon--tint {
   /* Make SVGs appear white-ish; tweak to taste */
-  filter: brightness(0) invert(2) contrast(1.05);
+  filter: brightness(1.3) invert(1) contrast(1.05);
   opacity: 0.95;
 }
 
