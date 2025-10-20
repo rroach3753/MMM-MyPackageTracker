@@ -1,0 +1,11 @@
+/* MMM-MyPackageTracker v2.0.0 CSS */
+.mmp-container{ padding:0 6px; }
+.mmp-section-header{ margin-top:6px; font-weight:600; font-size:12px; opacity:.8; }
+.mmp-list{ display:flex; flex-direction:column; gap:6px; }
+.mmp-row{ display:flex; align-items:center; gap:6px; }
+.mmp-row .mmp-icon{ opacity:.9; vertical-align:middle; }
+.mmp-row .mmp-main{ font-size:12px; }
+.mmp-row .mmp-sub{ font-size:11px; opacity:.75; }
+.mmp-row.mmp-clickable{ cursor:pointer; }
+.mmp-row.mmp-ofd{ background: rgba(255,215,0,.08); border-left:2px solid #ffd700; padding-left:4px; border-radius:2px; }
+.mmp-badge{ background:#2ea043; color:#fff; padding:1px 6px; border-radius:10px; font-size:10px; margin-left:6px; }
