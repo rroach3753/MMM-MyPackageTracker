@@ -1,6 +1,6 @@
 {
   "name": "MMM-MyPackageTracker",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "MagicMirror\u00b2 module to display parcels from OneTracker with grouping, delivered-today badge, Simple Icons logos, and robust null-safe UI for missing values.",
   "main": "MMM-MyPackageTracker.js",
   "author": "Rickey Roach + Copilot",
