@@ -83,9 +83,19 @@ Module.register("MMM-MyPackageTracker", {
   },
 
   carrierSlugMap: {
+    // --- USPS / United States Postal Service ---
     "usps": "unitedstatespostalservice",
+    "u s postal service": "unitedstatespostalservice", // "U.S. Postal Service" -> dots removed by normalize
     "united states postal service": "unitedstatespostalservice",
+    "united states postal service usps": "unitedstatespostalservice",
+    "united states post office": "unitedstatespostalservice", // occasional variant in feeds
+    // --- UPS ---
     "ups": "ups",
+    "united parcel service": "ups",
+    "ups ground": "ups", // service-level appended
+    "ups®": "ups", // if normalize left the mark
+    // (normalizeCarrierName removes punctuation so "ups®" often becomes "ups")
+    // --- Other major carriers ---
     "fedex": "fedex",
     "dhl": "dhl",
     "dhl express": "dhl",
