@@ -1,26 +1,19 @@
-/* MMM-MyPackageTracker v2.0.0 CSS */
-.mmp-container{ padding:0 6px; }
-.mmp-section-header{ margin-top:6px; font-weight:600; font-size:12px; opacity:.8; }
-.mmp-list{ display:flex; flex-direction:column; gap:6px; }
-.mmp-row{ display:flex; align-items:center; gap:6px; }
-.mmp-row .mmp-icon{ opacity:.9; vertical-align:middle; }
-.mmp-row .mmp-main{ font-size:12px; }
-.mmp-row .mmp-sub{ font-size:11px; opacity:.75; }
-.mmp-row.mmp-clickable{ cursor:pointer; }
-.mmp-row.mmp-ofd{ background: rgba(255,215,0,.08); border-left:2px solid #ffd700; padding-left:4px; border-radius:2px; }
-.mmp-badge{ background:#2ea043; color:#fff; padding:1px 6px; border-radius:10px; font-size:10px; margin-left:6px; }
+/* MMM-MyPackageTracker.css (icon brightness + fallback friendly) */
+.mmp-container { padding: 0 6px; }
+.mmp-section-header { margin-top: 6px; font-weight: 600; font-size: 12px; opacity: 0.8; }
+.mmp-list { display: flex; flex-direction: column; gap: 6px; }
+.mmp-row { display: flex; align-items: center; gap: 6px; color: #fff; }
+.mmp-row .mmp-main { font-size: 12px; }
+.mmp-row .mmp-sub { font-size: 11px; opacity: 0.80; }
+.mmp-row.mmp-clickable { cursor: pointer; }
+.mmp-row.mmp-ofd { background: rgba(255, 215, 0, 0.08); border-left: 2px solid #ffd700; padding-left: 4px; border-radius: 2px; }
 
-/* Force icons to appear as light glyphs on dark backgrounds */
-.mmp-icon--tint {
-  /* Make SVGs appear white-ish; tweak to taste */
-  filter: brightness(0) invert(1.5);
-  opacity: 0.95;
-}
-
-/* Slight hover or clickable affordance */
-.mmp-row.mmp-clickable .mmp-icon--tint {
-  transition: filter .2s ease, opacity .2s ease;
-}
-.mmp-row.mmp-clickable:hover .mmp-icon--tint {
+/* Icons: bright, high-contrast; fallback SVG uses currentColor */
+.mmp-icon {
   opacity: 1;
+  filter: brightness(1.35) contrast(1.15);
+  vertical-align: middle;
+  color: #fff; /* affects fallback-package.svg via currentColor */
 }
+
+.mmp-badge { background: #2ea043; color: #fff; padding: 1px 6px; border-radius: 10px; font-size: 10px; margin-left: 6px; }
