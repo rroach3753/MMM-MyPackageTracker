@@ -66,7 +66,7 @@ Module.register("MMM-MyPackageTracker", {
     const items = this.config.maxItems>0 ? list.slice(0,this.config.maxItems) : list;
     items.forEach(p=>{
       const row=document.createElement("div"); row.className="mmp-row";
-      const icon=this._carrierIconUrl(p.carrier); if(this.config.showCarrierIcons && icon){ const img=document.createElement("img"); img.src=icon; img.width=this.config.iconSize||12; img.height=this.config.iconSize||12; img.alt=p.carrier||""; img.className="mmp-icon"; row.appendChild(img); }
+      const icon=this._carrierIconUrl(p.carrier); if(this.config.showCarrierIcons && icon){ const img=document.createElement("img"); img.src=icon; img.className = "mmp-icon mmp-icon--tint"; img.width=this.config.iconSize||12; img.height=this.config.iconSize||12; img.alt=p.carrier||""; img.className="mmp-icon"; row.appendChild(img); }
       const main=document.createElement("div"); main.className="mmp-main"; const carrier=this._u.coerce(p.carrier)||"—"; const desc=this._u.coerce(p.description)||""; main.textContent=[carrier,desc].filter(Boolean).join(" · ");
       const sub=document.createElement("div"); sub.className="mmp-sub"; sub.textContent=this._statusLabel(this._u.coerce(p.tracking_status));
       row.appendChild(main); row.appendChild(sub);
