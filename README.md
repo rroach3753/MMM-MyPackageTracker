@@ -21,6 +21,11 @@ Track your packages from **OneTracker**. It authenticates with OneTracker, fetch
 
 ---
 
+## Prereqs
+- You must sign-up for an account with Onetracker.app via their mobile app or website at https://onetracker.app
+
+---
+
 ## Installation
 ```bash
 cd ~/MagicMirror/modules
