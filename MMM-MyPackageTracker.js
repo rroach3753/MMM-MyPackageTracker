@@ -1,4 +1,4 @@
-/* MMM-MyPackageTracker.js — v2.0.2 */
+/* MMM-MyPackageTracker.js — v2.0.3 (local-first UPS/USPS + CDN fallback) */
 Module.register("MMM-MyPackageTracker", {
   defaults: {
     email: "",
@@ -18,7 +18,7 @@ Module.register("MMM-MyPackageTracker", {
     openOnClick: true,
     iconSize: 16,
 
-    // icon color control (CDN tint). Set to e.g. "ffffff" for white, or null for brand color
+    // icon color control for CDN logos (null = brand color; e.g., "ffffff" = white)
     iconColor: null,
 
     // debug
@@ -75,7 +75,7 @@ Module.register("MMM-MyPackageTracker", {
     return m[key] || this._u.title(key);
   },
 
-  // icon normalization + mapping
+  // normalization + mapping
   normalizeCarrierName(name) {
     if (!name) return null;
     const s = String(name).toLowerCase()
@@ -98,19 +98,15 @@ Module.register("MMM-MyPackageTracker", {
     "united parcel service": "ups",
     "ups ground": "ups",
 
-    // Common North America
+    // Common NA + Intl (subset)
     "fedex": "fedex",
     "dhl": "dhl",
     "dhl express": "dhl",
     "canada post": "canadapost",
     "canada post corporation": "canadapost",
-
-    // Amazon
     "amazon": "amazon",
     "amazon logistics": "amazon",
     "amazon shipping": "amazon",
-
-    // International samples (extend as needed)
     "royal mail": "royalmail",
     "dpd": "dpd",
     "hermes": "evri",
@@ -143,6 +139,15 @@ Module.register("MMM-MyPackageTracker", {
     if (!slug) return null;
     const color = this.config.iconColor ? `/${this.config.iconColor}` : "";
     return `https://cdn.simpleicons.org/${slug}${color}`;
+  },
+
+  // local-first for UPS/USPS
+  _localBrandIconFor(rawName) {
+    if (!rawName) return null;
+    const s = String(rawName).toLowerCase();
+    if (s.includes("ups") || s.includes("united parcel service")) return "public/icons/brand-ups.svg";
+    if (s.includes("usps") || s.includes("u.s. postal service") || s.includes("united states postal service") || s.includes("united states post office")) return "public/icons/brand-usps.svg";
+    return null;
   },
 
   _sortParcels(list) {
@@ -214,21 +219,22 @@ Module.register("MMM-MyPackageTracker", {
       const row = document.createElement("div");
       row.className = "mmp-row";
 
-      // Icon
-      if (this.config.showCarrierIcons) {
-        const iconUrl = this.simpleIconUrlForCarrier(p.carrier);
-        if (this.config.debug && !iconUrl && p.carrier) {
-          console.log("[MMM-MyPackageTracker] No brand icon for carrier:", p.carrier);
-        }
-        const img = document.createElement("img");
-        img.className = "mmp-icon";
-        img.width = this.config.iconSize || 16;
-        img.height = this.config.iconSize || 16;
-        img.alt = (p.carrier || "").toString();
-        img.src = iconUrl || this.file("public/icons/fallback-package.svg");
-        img.onerror = () => { img.onerror = null; img.src = this.file("public/icons/fallback-package.svg"); };
-        row.appendChild(img);
+      // ICON: local-first for UPS/USPS, else CDN + fallback
+      const localPath = this._localBrandIconFor(p.carrier);
+      const iconUrl = this.simpleIconUrlForCarrier(p.carrier);
+
+      if (this.config.debug && !localPath && !iconUrl && p.carrier) {
+        console.log("[MMM-MyPackageTracker] No brand icon for carrier:", p.carrier);
       }
+
+      const img = document.createElement("img");
+      img.className = "mmp-icon";
+      img.width = this.config.iconSize || 16;
+      img.height = this.config.iconSize || 16;
+      img.alt = (p.carrier || "").toString();
+      img.src = localPath ? this.file(localPath) : (iconUrl || this.file("public/icons/fallback-package.svg"));
+      img.onerror = () => { img.onerror = null; img.src = this.file("public/icons/fallback-package.svg"); };
+      row.appendChild(img);
 
       const main = document.createElement("div");
       main.className = "mmp-main";

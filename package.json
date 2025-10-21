@@ -1,7 +1,7 @@
 {
   "name": "MMM-MyPackageTracker",
-  "version": "2.0.2",
-  "description": "MagicMirror\u00b2 module to display parcels from OneTracker with carrier icon mapping, reliable fallbacks, and bright icons",
+  "version": "2.0.3",
+  "description": "MagicMirror\u00b2 module to display parcels from OneTracker with local-first UPS/USPS icons, CDN fallback, and bright UI",
   "main": "MMM-MyPackageTracker.js",
   "author": "Rickey Roach + Copilot",
   "license": "MIT",
