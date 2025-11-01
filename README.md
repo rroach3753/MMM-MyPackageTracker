@@ -1,28 +1,31 @@
-# MMM-MyPackageTracker
+# MMM-MyPackageTracker v3.0.0
 
-Track your packages from **OneTracker**. It authenticates with OneTracker, fetches your parcels, groups/sorts them, and presents a clean, compact UI with:
+MagicMirror² module to display package tracking information.
 
-- **Friendly status labels** (e.g., `in_transit` → **In transit**) and optional **carrier wording** when available.
-- **Context‑aware time labels** (**Delivered / ETA / Updated**) that only show when timestamps are **valid/plausible**.
-- **Delivered today** badge & grouping.
-- **Carrier icons** via the **Simple Icons** CDN (CC0‑1.0); a built‑in **fallback icon** is used when needed.
-- **Unknown statuses** now display as **“Unknown – Pending Update”** (v1.1.9).
+> **What changed in v3?** The backend has migrated from **OneTracker** to the **Ship24 Tracking API** for broader carrier coverage and a maintained developer experience. Icons are now **CDN‑only** (Simple Icons) for *all* carriers, with a single fallback SVG. Local‑first UPS/USPS icons were removed.
+
+---
+
+## Overview
+- **Backend:** Ship24 Tracking API (Bearer token) — replaces the legacy OneTracker integration.  
+- **UI:** Compact, high‑contrast list with friendly status labels, optional grouping, and a "Delivered today" badge.  
+- **Icons:** Delivered via the **Simple Icons** color CDN; automatic fallback glyph if a logo fails to load.  
+- **Performance:** Polling interval is configurable; a minimal webhook receiver is available for push updates.
+
+> The original README described an OneTracker‑based flow with features like friendly labels, delivered‑today grouping, and CDN icons. Those UX features remain, while the **data source** is now Ship24.  
 
 ---
 
 ## Features
-- 🔐 Logs in to **OneTracker** and periodically fetches active parcels (non‑archived by default).
-- 🧭 **Friendly status labels** and **carrier‑provided text** when available.
-- ⏱️ Context‑aware time labels (**Delivered / ETA / Updated**) only when timestamps are **plausible** (sentinels ignored).
-- 🚚 Grouping by status: **Out for delivery**, **In transit**, **Delivered today**, **Other**.
-- 🖼️ **Simple Icons** CDN for carrier marks (lightweight, CC0‑1.0); **fallback** icon for missing/failed logos.
-- 🔔 Emits `ONETRACKER_DELIVERED` when a parcel first transitions to *delivered*.
-- ⚙️ Compact layout with configurable **`iconSize`**.
-
----
-
-## Prereqs
-- You must sign-up for an account with Onetracker.app via their mobile app or website at https://onetracker.app
+- **Ship24 integration**: create or refresh trackers and fetch live events per tracking number.  
+- **Clear statuses** (mapped from Ship24 `statusMilestone`):
+  - `delivered` → **Delivered**
+  - `out_for_delivery` → **Out for delivery**
+  - `in_transit` → **In transit**
+  - (all others) → **Other**
+- **Delivered‑today badge** and **status grouping** (Out for delivery / In transit / Delivered today / Other).
+- **Icon system**: Simple Icons CDN for all carriers; single **fallback-package.svg** if a logo 404s.
+- **Readable design**: bright icons and balanced text contrast for MagicMirror glass.
 
 ---
 
@@ -34,137 +37,99 @@ cd MMM-MyPackageTracker
 npm install
 ```
 
-> **ZIP install:** Download a release ZIP and unzip into `~/MagicMirror/modules/MMM-MyPackageTracker`, then run `npm install`.
+**ZIP install:** Download a release ZIP and unzip into `~/MagicMirror/modules/MMM-MyPackageTracker`, then run `npm install`.
 
 ---
 
 ## Configuration
-Add to `~/MagicMirror/config/config.js`:
+Add to your `~/MagicMirror/config/config.js`:
 
 ```js
 {
   module: "MMM-MyPackageTracker",
   position: "top_right",
-  header: "Packages",
+  header: "Packages", // optional
   config: {
-    email: "you@example.com",
-    password: "YOUR-ONETRACKER-PASSWORD",
+    // ---- Ship24 API (required) ----
+    // Bearer token from your Ship24 dashboard
+    ship24ApiKey: "YOUR-SHIP24-KEY",
 
-    refreshInterval: 5*60*1000,
-    showArchived: false,
-    statusFilter: [],
+    // Track these numbers (idempotent create + fetch each poll)
+    seedTrackers: [
+      // { trackingNumber: "9405511202575421535949", courier: "usps", description: "Sample" },
+      // { trackingNumber: "1Z9999W99999999999", courier: "ups" }
+    ],
+
+    // Optional webhook support (disabled by default)
+    useWebhooks: false,
+    webhookPort: 0,                 // e.g., 8567
+    webhookPath: "/ship24/webhook", // your inbound path
+
+    // ---- UI ----
+    refreshInterval: 5 * 60 * 1000, // 5 minutes
+    showArchived: false,            // legacy flag, ignored by Ship24 backend
+    statusFilter: [],               // reserved for future filtering
     maxItems: 12,
-    sortBy: "time_updated", // "time_updated" | "eta" | "status"
-
+    sortBy: "time_updated",         // "time_updated" | "status" | "eta"
     showHeaderCount: true,
     showCarrierIcons: true,
     groupByStatus: true,
     highlightOutForDelivery: true,
     showDeliveredToday: true,
     openOnClick: true,
-    iconSize: 12,
+    iconSize: 16,
 
+    // Icon color via Simple Icons CDN (null = brand color)
+    iconColor: "ffffff", // set to null to use brand color
+
+    // Debug
     debug: false
   }
 }
 ```
 
----
-
-## Options
-| Option | Type | Default | Description |
-|---|---|---:|---|
-| `email` | string | `""` | OneTracker account email (for token). |
-| `password` | string | `""` | OneTracker password. |
-| `refreshInterval` | number (ms) | `300000` | Polling interval. Prefer 5–10 minutes. |
-| `showArchived` | boolean | `false` | Include archived parcels if `true`. |
-| `statusFilter` | string[] | `[]` | Only show parcels whose `tracking_status` is in the list. |
-| `maxItems` | number | `12` | Max rows per group/list. |
-| `sortBy` | string | `"time_updated"` | Sort by `time_updated` (default), `eta`, or `status` (Out‑for‑delivery prioritized). |
-| `showHeaderCount` | boolean | `true` | Show total count in the header. |
-| `showCarrierIcons` | boolean | `true` | Display Simple Icons brand mark before carrier name. |
-| `groupByStatus` | boolean | `true` | Group into Out for delivery / In transit / Delivered today / Other. |
-| `highlightOutForDelivery` | boolean | `true` | Subtle emphasis for out‑for‑delivery rows. |
-| `showDeliveredToday` | boolean | `true` | Show delivered‑today badge & section. |
-| `openOnClick` | boolean | `true` | Open `tracking_url` in a new tab when a row is clicked. |
-| `iconSize` | number (px) | `12` | Pixel size of carrier icon (min 8). |
-| `preferCarrierStatusText` | boolean | `true` | Prefer OneTracker’s `tracking_status_text` over raw status key. |
-| `statusCase` | string | `"title"` | Case for status strings: `"title"`, `"sentence"`, or `"original"`. |
+### Notes
+- If you know the courier for a tracker, set `courier` for better accuracy.
+- You can also pass `originCountryCode`, `destinationCountryCode`, `clientTrackerId`, and `shipmentReference` per tracker (see README‑SHIP24 and the code for examples).
 
 ---
 
-## Events
-- **`ONETRACKER_DELIVERED`** — fired when a parcel transitions to **delivered** since the previous fetch.
+## Icon Handling
+- Icons are fetched from **Simple Icons CDN**:  
+  `https://cdn.simpleicons.org/<slug>[/<hex_color>]`
+- Common slugs are mapped (e.g., `ups`, `unitedstatespostalservice`, `fedex`, `dhl`, `amazon`, `canadapost`, `royalmail`, `dpd`, `evri`, `gls`, `postnl`, etc.).
+- If an icon fails, a **generic fallback** is displayed: `public/icons/fallback-package.svg`.
 
-Example payload:
-```json
-{
-  "id": 123,
-  "carrier": "USPS",
-  "description": "Camera",
-  "tracking_id": "9400...US",
-  "when": "2025-10-14T16:30:00Z"
-}
-```
+> Local, brand‑specific SVGs for UPS/USPS that shipped in earlier pre‑v3 builds were removed. The module no longer references `brand-ups.svg` or `brand-usps.svg`.
 
 ---
 
-## How It Works
-- **Auth** — `POST /auth/token` with `{ email, password }` → `session.token` & `session.expiration`. Subsequent calls include `x-api-token: <token>`.
-- **Data** — `GET /parcels` returns parcel objects with fields like `carrier`, `description`, `tracking_status`, `tracking_status_text`, `tracking_status_description`, `tracking_location`, `tracking_time_estimated`, `tracking_time_delivered`, `time_updated`, `is_archived`, `tracking_url`.
-- **Time display (v1.1.6+)** — robust parsing (seconds/ms/numeric/ISO). We display **Delivered** > **ETA** > **Updated** only when the chosen timestamp is **plausible**; known sentinels are ignored.
-
----
-
-## Status Text & Case (v1.1.8+)
-- `pre_transit` → **Pre‑transit**; `in_transit` → **In transit**; `out_for_delivery` → **Out for delivery**; `delivered` → **Delivered**; plus friendly labels for `exception`, `failure`, `delayed`, etc.
-- If `preferCarrierStatusText: true` and `tracking_status_text` exists, use it.
-- Control final casing with `statusCase`: `"title"` (default), `"sentence"`, or `"original"`.
-- Subline composes **Status • Description • Location** (only present fields are shown).
-- **Unknown statuses** now show as **“Unknown – Pending Update”** (v1.1.9).
-
----
-
-## Icons & Fallback
-- Brand marks are loaded **only** from **Simple Icons** CDN: `https://cdn.simpleicons.org/[slug]` (e.g., `fedex`, `ups`, `usps`, `dhl`, `amazon`, `canadapost`).
-- If a slug is unknown or the CDN request fails, we hide the bubble and/or use a **fallback** icon served from this module.
+## Webhooks (optional)
+- Set `useWebhooks: true` and choose a `webhookPort`/`webhookPath` to accept Ship24 POST callbacks.  
+- Configure the webhook URL in your Ship24 dashboard to point at `http://<mirror-ip>:<port><path>`.
+- You can add shared‑secret verification later (stub provided in `node_helper.js`).
 
 ---
 
 ## Troubleshooting
-- **401 Unauthorized** — Wrong credentials or expired token. The helper re‑auths on 401; verify `email`/`password` if it persists.
-- **No parcels** — Ensure parcels exist in OneTracker (mobile/web). Check `showArchived`/`statusFilter` isn’t hiding them.
-- **Weird dates (e.g., 1970/Dec 31)** — Fixed in v1.1.6; v1.1.7 also ignores sentinel/implausible times.
-- **USPS icon “broken”** — Use slug `usps`. The UI removes broken icon bubbles to avoid artifacts.
-- **Logs** — `pm2 logs mm` (or run MagicMirror with `npm start dev` in `~/MagicMirror`).
+- **No results shown**: verify `ship24ApiKey` and try a known tracking number in the Ship24 dashboard first.  
+- **Icons look dim**: increase brightness in CSS (`.mmp-icon { filter: brightness(1.45) contrast(1.2); }`) or set `iconColor: "ffffff"`.
+- **UPS/USPS still missing**: ensure slugs resolve; these are `ups` and `unitedstatespostalservice` at the CDN.
 
 ---
 
-## Release Highlights
-- **v1.1.9** — Unknown statuses now display as **“Unknown – Pending Update”**.
-- **v1.1.8** — Friendly status labels; prefer carrier text; `statusCase`; subline tidy.
-- **v1.1.7** — Ignore sentinel/implausible timestamps; show labels only when valid.
-- **v1.1.6** — Robust timestamp parsing; context‑aware labels.
-- **v1.1.5** — USPS slug fix; built‑in fallback icon.
-- **v1.1.4** — `iconSize` option for compact layouts.
-
-See **CHANGELOG.md** for full history.
-
----
-
-## Contributing & CI
-- Issues and PRs are welcome.
-- CI runs on Node **18** and **20** (see `.github/workflows/ci.yml`).
-- Releases can auto‑attach the module ZIP (see `.github/workflows/release.yml`).
+## Upgrade notes (from v2.x to v3)
+- **Backend**: OneTracker → Ship24. Replace credentials with `ship24ApiKey`.  
+- **Icons**: removed local‑first UPS/USPS; icons now come from CDN for all carriers. You may delete `public/icons/brand-ups.svg` and `brand-usps.svg` if present.  
+- **Config**: keep `seedTrackers` (now Ship24), `refreshInterval`, and display settings.
 
 ---
 
 ## License
-**MIT** — see LICENSE.
+MIT
 
 ---
 
-## References
-- MagicMirror² module development: <https://docs.magicmirror.builders/module-development/introduction.html>
-- OneTracker API access: <https://support.onetracker.app/apis/>
-- Simple Icons (CC0‑1.0) + CDN: <https://simpleicons.org>
+### References
+- Ship24 API reference (base URL, trackers, status model).  
+- Simple Icons for carrier slugs & CDN color endpoints.

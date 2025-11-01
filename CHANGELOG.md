@@ -1,12 +1,15 @@
 # Changelog
 
-## 2.0.3 (2025-10-20)
+## 3.0.0 — 2025-11-01
+**Backend**
+- Migrate data source from OneTracker to **Ship24 Tracking API** (Bearer token).
+- Idempotent `POST /v1/trackers/track` per tracking number (create+fetch in one call).
 
-**Fixes**
-- **Local-first icons for UPS & USPS**: load from `public/icons/brand-*.svg` to avoid any CDN/network issues, with CDN used for all other carriers.
-- Keep on-error fallback to `public/icons/fallback-package.svg`.
+**UI & Icons**
+- Use **Simple Icons CDN** for *all* carriers.
+- Keep a single generic fallback SVG if a logo fails.
+- **Removed**: local‑first brand icons for UPS/USPS.
 
-**Enhancements**
-- Retains `iconColor` for tinting CDN icons while local SVGs follow CSS `currentColor`.
-
-Files changed: `MMM-MyPackageTracker.js`, `MMM-MyPackageTracker.css`, `public/icons/brand-ups.svg`, `public/icons/brand-usps.svg`, `public/icons/fallback-package.svg`, `package.json`.
+**Config**
+- New `ship24ApiKey` (required), `seedTrackers`, and optional webhook settings.
+- Existing display options (grouping, header count, icon size, etc.) remain.

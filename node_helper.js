@@ -1,89 +1,188 @@
-/* MMM-MyPackageTracker v2.0.0 - node_helper.js */
-const NodeHelper = require("node_helper");
-const fetch = require("node-fetch");
-const dayjs = require("dayjs");
+/* node_helper.js — Ship24 edition (v3.0.0)
+ * Uses Ship24 Tracking API with Bearer token auth.
+ * Default mode: idempotent polling via POST /v1/trackers/track for each configured seed tracker.
+ * Optional webhook receiver (disabled by default).
+ */
 
-const API_BASE = "https://api.onetracker.app";
+const NodeHelper = require('node_helper');
+const fetch = require('node-fetch');
+const http = require('http');
 
-// Coerce undefined/null/empty/"unknown" -> null
-function coerce(v){
-  if (v === undefined || v === null) return null;
-  const s = String(v).trim();
-  return !s || s.toLowerCase()==="unknown" ? null : s;
-}
-
-function normalizeParcel(p){
-  const out = { ...p };
-  out.carrier = coerce(p.carrier);
-  out.description = coerce(p.description);
-  out.tracking_status = coerce(p.tracking_status);
-  out.tracking_location = coerce(p.tracking_location);
-  out.tracking_url = coerce(p.tracking_url);
-  out.tracking_time_estimated = p.tracking_time_estimated || null;
-  out.tracking_time_delivered = p.tracking_time_delivered || null;
-  out.time_updated = p.time_updated || p.updated_at || null;
-  return out;
-}
+const S24_BASE = 'https://api.ship24.com';
 
 module.exports = NodeHelper.create({
-  start(){
+  start() {
     this.config = null;
-    this.debug = false;
-    this.session = { token:null, expiration:null };
     this._fetching = false;
-    console.log("[MMM-MyPackageTracker] helper v2.0.0 started");
+    this._tmr = null;
+    this._webhookServer = null;
+    console.log('[MMM-MyPackageTracker] node_helper (Ship24) v3.0.0 started');
   },
 
-  socketNotificationReceived(n,p){
-    if(n==="MMM-MYPACKAGETRACKER_INIT"){
-      this.config = p||{}; this.debug = !!this.config.debug;
+  stop() {
+    if (this._tmr) clearInterval(this._tmr);
+    if (this._webhookServer) try { this._webhookServer.close(); } catch(e) {}
+  },
+
+  socketNotificationReceived(n, p) {
+    if (n === 'MMM-MYPACKAGETRACKER_INIT') {
+      this.config = p || {};
+      this._ensureWebhook();
+      const every = Math.max(60 * 1000, this.config.refreshInterval || 300000);
+      this.fetchSafe();
+      if (this._tmr) clearInterval(this._tmr);
+      this._tmr = setInterval(() => this.fetchSafe(), every);
+      return;
+    }
+    if (n === 'MMM-MYPACKAGETRACKER_FETCH_NOW') {
       this.fetchSafe();
     }
-    if(n==="MMM-MYPACKAGETRACKER_FETCH_NOW") this.fetchSafe();
   },
 
-  async ensureToken(){
-    const now = Date.now();
-    const exp = this.session.expiration ? new Date(this.session.expiration).getTime() : 0;
-    if (this.session.token && exp - now > 60*1000) return this.session.token;
-
-    const { email, password } = this.config;
-    if (!email || !password) throw new Error("Missing OneTracker credentials");
-
-    const res = await fetch(`${API_BASE}/auth/token`, { method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify({ email, password }) });
-    if(!res.ok){ const t = await res.text(); throw new Error(`Auth failed: ${res.status} ${res.statusText} ${t}`); }
-    const data = await res.json();
-    this.session = { token: data?.session?.token, expiration: data?.session?.expiration || null };
-    if(!this.session.token) throw new Error("Auth response missing session.token");
-    if(this.debug) console.log("[MMM-MyPackageTracker] token exp:", this.session.expiration);
-    return this.session.token;
+  _headers() {
+    const key = this.config.ship24ApiKey;
+    if (!key) throw new Error('Missing config.ship24ApiKey');
+    return {
+      'Authorization': `Bearer ${key}`,
+      'Content-Type': 'application/json',
+      'Accept': 'application/json'
+    };
   },
 
-  async fetch(){
-    const token = await this.ensureToken();
-    let res = await fetch(`${API_BASE}/parcels`, { headers:{ 'x-api-token': token }});
-    if(res.status===401){ await this.ensureToken(); res = await fetch(`${API_BASE}/parcels`, { headers:{ 'x-api-token': this.session.token }}); }
-    if(!res.ok){ const t = await res.text(); throw new Error(`Parcels failed: ${res.status} ${res.statusText} ${t}`); }
-    const body = await res.json();
-    const list = Array.isArray(body) ? body : (body?.parcels || []);
-
-    const lowered = (this.config.statusFilter || []).map(s=>String(s).toLowerCase());
-    const filtered = list.filter(p=>{
-      if(!this.config.showArchived && p.is_archived) return false;
-      if(lowered.length){ const st = String(p.tracking_status||"").toLowerCase(); if(!lowered.includes(st)) return false; }
-      return true;
-    }).map(normalizeParcel);
-
-    const today = dayjs();
-    const deliveredTodayCount = filtered.filter(p=> p.tracking_time_delivered && dayjs(p.tracking_time_delivered).isSame(today,'day')).length;
-
-    this.sendSocketNotification("MMM-MYPACKAGETRACKER_DATA", { parcels: filtered, deliveredTodayCount, fetchedAt: Date.now() });
+  async fetchSafe() {
+    if (this._fetching) return;
+    this._fetching = true;
+    try {
+      const parcels = await this._collectParcels();
+      const deliveredTodayCount = parcels.filter(p => this._deliveredToday(p)).length;
+      this.sendSocketNotification('MMM-MYPACKAGETRACKER_DATA', {
+        parcels,
+        deliveredTodayCount,
+        fetchedAt: Date.now()
+      });
+    } catch (err) {
+      console.error('[MMM-MyPackageTracker] Ship24 error:', err?.message || err);
+      this.sendSocketNotification('MMM-MYPACKAGETRACKER_ERROR', { message: String(err?.message || err) });
+    } finally {
+      this._fetching = false;
+    }
   },
 
-  async fetchSafe(){
-    if(this._fetching) return; this._fetching = true;
-    try{ await this.fetch(); }
-    catch(e){ console.error("[MMM-MyPackageTracker] fetch error:", e.message); this.sendSocketNotification("MMM-MYPACKAGETRACKER_ERROR", { message: e.message }); }
-    finally{ this._fetching = false; }
+  async _collectParcels() {
+    const seeds = Array.isArray(this.config.seedTrackers) ? this.config.seedTrackers : [];
+
+    if (seeds.length === 0) {
+      if (this.config.debug) console.log('[MMM-MyPackageTracker] No seedTrackers configured; returning empty list');
+      return [];
+    }
+
+    const parcels = [];
+    for (const s of seeds) {
+      const tn = String(s.trackingNumber || s.tracking_number || '').trim();
+      if (!tn) continue;
+      try {
+        const res = await this._trackOnce({
+          trackingNumber: tn,
+          courierCode: s.courier || s.courierCode || s.courier_code || undefined,
+          originCountryCode: s.originCountryCode || s.origin || undefined,
+          destinationCountryCode: s.destinationCountryCode || s.destination || undefined,
+          clientTrackerId: s.clientTrackerId || undefined,
+          shipmentReference: s.shipmentReference || s.description || undefined
+        });
+        const parcel = this._normalizeFromShip24Result(res, s);
+        if (parcel) parcels.push(parcel);
+      } catch (e) {
+        console.warn('[MMM-MyPackageTracker] track error for', tn, e?.message || e);
+      }
+      await new Promise(r => setTimeout(r, 150));
+    }
+    return parcels;
+  },
+
+  async _trackOnce(payload) {
+    const url = `${S24_BASE}/v1/trackers/track`;
+    const body = { trackingNumber: payload.trackingNumber };
+    if (payload.courierCode) body.courierCode = payload.courierCode;
+    if (payload.originCountryCode) body.originCountryCode = payload.originCountryCode;
+    if (payload.destinationCountryCode) body.destinationCountryCode = payload.destinationCountryCode;
+    if (payload.clientTrackerId) body.clientTrackerId = payload.clientTrackerId;
+    if (payload.shipmentReference) body.shipmentReference = payload.shipmentReference;
+
+    const res = await fetch(url, { method: 'POST', headers: this._headers(), body: JSON.stringify(body) });
+    if (!res.ok) {
+      const txt = await res.text();
+      throw new Error(`Ship24 track failed: ${res.status} ${res.statusText} ${txt}`);
+    }
+    return res.json().catch(() => ({}));
+  },
+
+  _normalizeFromShip24Result(json, seed) {
+    const data = json?.data || json;
+
+    const courier = data?.tracker?.courierCode || seed?.courier || seed?.courierCode || seed?.courier_code || null;
+    const shipment = data?.shipment || {};
+    const milestone = (shipment?.statusMilestone || '').toLowerCase();
+    const tracking_status = this._mapMilestone(milestone);
+
+    const evs = Array.isArray(shipment?.events) ? shipment.events : [];
+    const last = evs.length ? evs[evs.length - 1] : null;
+
+    const location = last?.location || last?.address || '';
+    const deliveredAt = tracking_status === 'delivered' ? (last?.occurrenceDatetime || null) : null;
+    const updatedAt = last?.occurrenceDatetime || null;
+
+    return {
+      carrier: courier,
+      description: seed?.description || seed?.shipmentReference || '',
+      tracking_status,
+      tracking_location: location,
+      tracking_url: null,
+      tracking_time_estimated: null,
+      tracking_time_delivered: deliveredAt,
+      time_updated: updatedAt
+    };
+  },
+
+  _mapMilestone(m) {
+    if (m === 'delivered') return 'delivered';
+    if (m === 'out_for_delivery') return 'out_for_delivery';
+    if (m === 'in_transit') return 'in_transit';
+    return 'other';
+  },
+
+  _deliveredToday(p) {
+    if (!p?.tracking_time_delivered) return false;
+    const d = new Date(p.tracking_time_delivered);
+    const now = new Date();
+    return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && d.getDate() === now.getDate();
+  },
+
+  _ensureWebhook() {
+    if (!this.config.useWebhooks) return;
+    const port = Number(this.config.webhookPort || 0) || 0;
+    const path = String(this.config.webhookPath || '/ship24/webhook');
+    if (!port) { console.warn('[MMM-MyPackageTracker] useWebhooks=true but no webhookPort configured; skipping server'); return; }
+    if (this._webhookServer) return;
+
+    this._webhookServer = http.createServer((req, res) => {
+      if (req.method !== 'POST' || !req.url.startsWith(path)) { res.statusCode = 404; return res.end('not found'); }
+      let raw='';
+      req.on('data', chunk => raw += chunk);
+      req.on('end', () => {
+        try {
+          const payload = JSON.parse(raw || '{}');
+          const d = payload?.data || payload;
+          const shipment = d?.shipment || null;
+          const tracker = d?.tracker || null;
+          if (shipment && tracker) {
+            const parcel = this._normalizeFromShip24Result({ data: { shipment, tracker } }, {});
+            const deliveredTodayCount = parcel && this._deliveredToday(parcel) ? 1 : 0;
+            this.sendSocketNotification('MMM-MYPACKAGETRACKER_DATA', { parcels: parcel ? [parcel] : [], deliveredTodayCount, fetchedAt: Date.now() });
+          }
+          res.statusCode = 200; res.end('ok');
+        } catch(e) { res.statusCode = 400; res.end('bad json'); }
+      });
+    });
+    this._webhookServer.listen(port, () => console.log(`[MMM-MyPackageTracker] webhook receiver listening on :${port}${path}`));
   }
 });
