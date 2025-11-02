@@ -1,7 +1,7 @@
 {
   "name": "MMM-MyPackageTracker",
-  "version": "3.0.1",
-  "description": "MagicMirror\u00b2 module: Ship24 tracking backend with listAllTrackers option; CDN icons for all carriers.",
+  "version": "3.5.0",
+  "description": "MagicMirror\u00b2 module: Ship24 tracking backend with listAllTrackers, robust 429 handling, and CDN icons.",
   "main": "MMM-MyPackageTracker.js",
   "author": "Rickey Roach + Copilot",
   "license": "MIT",

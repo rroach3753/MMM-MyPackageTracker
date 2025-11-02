@@ -2,6 +2,8 @@
 
 MagicMirror² module to display package tracking information with a compact, legible UI, carrier icons, and status grouping.
 
+This release aligns all banners and package metadata to **v3.5.0**. It carries forward all behavior and fixes from v3.0.2 (validation of `ship24ApiKey`, 429 backoff with jitter, optional `showTrackingLinks`).
+
 > **Since v3 (*2025-11-02*)** the backend migrated from **OneTracker** to the **Ship24 Tracking API** for improved reliability and coverage. **v3.0.1** adds an optional **listAllTrackers** mode so you can render shipments you already track in Ship24 without specifying them in the config.
 
 ---
