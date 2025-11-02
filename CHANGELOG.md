@@ -1,5 +1,18 @@
 # Changelog
 
+## 3.0.1 — 2025-11-01
+**Added**
+- `listAllTrackers` option to display existing Ship24 trackers when `seedTrackers` is empty.
+- `listPageSize` to control page size when listing trackers.
+
+**Behavior**
+- If `seedTrackers` has entries: keep calling `POST /v1/trackers/track` (idempotent create + results).
+- Else if `listAllTrackers` is true: call `GET /v1/trackers` (paged) and `GET /v1/trackers/:trackerId/results`.
+
+**Unchanged**
+- Ship24 backend and status mapping (statusMilestone).
+- Icons via Simple Icons CDN for all carriers with fallback SVG.
+
 ## 3.0.0 — 2025-11-01
 **Backend**
 - Migrate data source from OneTracker to **Ship24 Tracking API** (Bearer token).
