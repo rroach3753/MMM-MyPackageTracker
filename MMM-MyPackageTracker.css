@@ -1,4 +1,4 @@
-/* MMM-MyPackageTracker.css — v3.0.0 */
+/* MMM-MyPackageTracker.css — v3.0.1 */
 .mmp-container{ padding:0 6px; }
 .mmp-section-header{ margin-top:6px; font-weight:600; font-size:12px; opacity:.8; }
 .mmp-list{ display:flex; flex-direction:column; gap:6px; }
@@ -7,8 +7,5 @@
 .mmp-row .mmp-sub{ font-size:11px; opacity:.80; }
 .mmp-row.mmp-clickable{ cursor:pointer; }
 .mmp-row.mmp-ofd{ background: rgba(255,215,0,.08); border-left:2px solid #ffd700; padding-left:4px; border-radius:2px; }
-
-/* Icons: bright, high-contrast; fallback SVG uses currentColor */
 .mmp-icon{ opacity:1; filter: brightness(1.35) contrast(1.15); vertical-align:middle; color:#fff; }
-
 .mmp-badge{ background:#2ea043; color:#fff; padding:1px 6px; border-radius:10px; font-size:10px; margin-left:6px; }
