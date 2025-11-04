@@ -180,10 +180,6 @@ module.exports = NodeHelper.create({
     const courier = tr.courierCode || seed?.courier || seed?.courierCode || seed?.courier_code || null;
     const s24Url = (tn && courier) ? `https://www.ship24.com/trackings?courier=${encodeURIComponent(courier)}&trackingNumber=${encodeURIComponent(tn)}` : null;
 
-    const tn = tr.trackingNumber || seed?.trackingNumber || seed?.tracking_number || null;
-    const courier = tr.courierCode || seed?.courier || seed?.courierCode || seed?.courier_code || null;
-    const s24Url = (tn && courier) ? `https://www.ship24.com/trackings?courier=${encodeURIComponent(courier)}&trackingNumber=${encodeURIComponent(tn)}` : null;
-
     return {
       carrier: courier || null,
       description: seed?.description || tr.shipmentReference || seed?.shipmentReference || '',
