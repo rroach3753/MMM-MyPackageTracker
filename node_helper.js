@@ -46,7 +46,7 @@ module.exports = NodeHelper.create({
       this._tmr = setInterval(()=> this.fetchSafe(), every);
       return;
     }
-    if (n === 'MMM-MYPACKAGETRACKER_FETCH_NOW') this.fetchSafe();
+    if(n==='MMM-MYPACKAGETRACKER_FETCH_NOW') this.fetchSafe();
   },
 
   _hasKey(){ return !!(this.config && typeof this.config.ship24ApiKey === 'string' && this.config.ship24ApiKey.trim()); },
@@ -175,6 +175,10 @@ module.exports = NodeHelper.create({
                  : (milestone==='out_for_delivery') ? 'out_for_delivery'
                  : (milestone==='in_transit') ? 'in_transit'
                  : 'other';
+
+    const tn = tr.trackingNumber || seed?.trackingNumber || seed?.tracking_number || null;
+    const courier = tr.courierCode || seed?.courier || seed?.courierCode || seed?.courier_code || null;
+    const s24Url = (tn && courier) ? `https://www.ship24.com/trackings?courier=${encodeURIComponent(courier)}&trackingNumber=${encodeURIComponent(tn)}` : null;
 
     const tn = tr.trackingNumber || seed?.trackingNumber || seed?.tracking_number || null;
     const courier = tr.courierCode || seed?.courier || seed?.courierCode || seed?.courier_code || null;
