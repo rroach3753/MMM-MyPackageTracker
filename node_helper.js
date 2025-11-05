@@ -219,20 +219,49 @@ module.exports = NodeHelper.create({
       let raw='';
       req.on('data', c => raw += c);
       req.on('end', () => {
-        try{
+               try {
           const payload = JSON.parse(raw || '{}');
-          const d = payload?.data || payload;
-          const shipment = d?.shipment || null;
-          const tracker = d?.tracker || null;
-          if (shipment && tracker){
-            const parcel = this._normalize({ data: { shipment, tracker } }, {});
-            const deliveredTodayCount = parcel && this._deliveredToday(parcel) ? 1 : 0;
+
+          // Accept both formats:
+          // A) Standard: { trackings: [ { tracker, shipment, events } ... ] }
+          // B) Simple  : { data: { tracker, shipment, events? } }
+          let items = [];
+
+          if (Array.isArray(payload?.trackings) && payload.trackings.length > 0) {
+            items = payload.trackings;
+          } else if (payload?.data && (payload.data.tracker || payload.data.shipment)) {
+            items = [ payload.data ];
+          }
+
+          if (this.config.debug) {
+            console.log('[MMM-MyPackageTracker] webhook received items:',
+              Array.isArray(items) ? items.length : 0);
+          }
+
+          const parcels = [];
+          for (const it of items) {
+            const tracker  = it.tracker  || null;
+            const shipment = it.shipment || null;
+
+            // minimal guard — only process when both are present
+            if (!tracker || !shipment) continue;
+
+            const parcel = this._normalize({ data: { tracker, shipment } }, {});
+            if (parcel) parcels.push(parcel);
+          }
+
+          // Emit to UI if we built any parcel(s)
+          if (parcels.length > 0) {
+            const deliveredTodayCount = parcels.filter(p => this._deliveredToday(p)).length;
             this.sendSocketNotification('MMM-MYPACKAGETRACKER_DATA', {
-              parcels: parcel ? [parcel] : [], deliveredTodayCount, fetchedAt: Date.now()
+              parcels, deliveredTodayCount, fetchedAt: Date.now()
             });
           }
-          res.statusCode=200; res.end('ok');
-        }catch(e){ res.statusCode=400; res.end('bad json'); }
+
+          res.statusCode = 200; res.end('ok');
+        } catch (e) {
+          res.statusCode = 400; res.end('bad json');
+        }
       });
     });
 
