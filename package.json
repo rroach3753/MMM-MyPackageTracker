@@ -1,12 +1,12 @@
 {
   "name": "MMM-MyPackageTracker",
-  "version": "4.0.0",
-  "description": "MagicMirror\u00b2 package tracking module using Ship24 API (seed/list modes, webhooks, CDN icons).",
+  "version": "5.0.0",
+  "description": "MagicMirror\u00b2 module to display parcels from Ship24 with list/seed modes, auto-discovery of Ship24 base, empty-state banner, and rate-limit backoff.",
   "main": "MMM-MyPackageTracker.js",
   "author": "Rickey Roach + Copilot",
   "license": "MIT",
-  "type": "commonjs",
   "dependencies": {
-    "node-fetch": "^2.6.12"
+    "node-fetch": "^2.6.12",
+    "dayjs": "^1.11.13"
   }
 }

@@ -1,5 +1,4 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<svg width="256" height="256" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Package">
-  <title>Package</title>
-  <path fill="currentColor" d="M32 72l96 40 96-40-96-40-96 40zm0 24v88l96 40V136L32 96zm192 0l-96 40v88l96-40V96z"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+  <path d="M3 7l9-4 9 4v10l-9 4-9-4z"/>
+  <path d="M3 7l9 4 9-4" fill="none" stroke="currentColor" stroke-width="1.5"/>
 </svg>

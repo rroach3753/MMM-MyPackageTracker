@@ -1,11 +1,6 @@
-/* MMM-MyPackageTracker.css — v4.0.0 */
-.mmp-container{ padding:0 6px; }
-.mmp-section-header{ margin-top:6px; font-weight:600; font-size:12px; opacity:.8; }
-.mmp-list{ display:flex; flex-direction:column; gap:6px; }
-.mmp-row{ display:flex; align-items:center; gap:6px; color:#fff; }
-.mmp-row .mmp-main{ font-size:12px; }
-.mmp-row .mmp-sub{ font-size:11px; opacity:.80; }
-.mmp-row.mmp-clickable{ cursor:pointer; }
-.mmp-row.mmp-ofd{ background: rgba(255,215,0,.08); border-left:2px solid #ffd700; padding-left:4px; border-radius:2px; }
-.mmp-icon{ opacity:1; filter: brightness(1.35) contrast(1.15); vertical-align:middle; color:#fff; }
-.mmp-badge{ background:#2ea043; color:#fff; padding:1px 6px; border-radius:10px; font-size:10px; margin-left:6px; }
+
+.MMM-MyPackageTracker .empty, .MMM-MyPackageTracker .error { color: #f66; font-size: 12px; }
+.MMM-MyPackageTracker .group-title { margin-top: 8px; font-weight: 600; }
+.MMM-MyPackageTracker .item { display: flex; align-items: center; gap: 8px; margin: 2px 0; }
+.MMM-MyPackageTracker .carrier-icon { width: 16px; height: 16px; display: inline-block; }
+.MMM-MyPackageTracker .desc { opacity: .8; }
