@@ -82,7 +82,7 @@ module.exports = NodeHelper.create({
       case 'delivered':             return 'Delivered';
       case 'out_for_delivery':      return 'Out for delivery';
       case 'in_transit':            return 'In transit';
-      case 'info_received':
+      case 'info_received':         return 'Info received';
       case 'pending':               return 'Pending';
       case 'available_for_pickup':  return 'To pick up';
       case 'failed_attempt':        return 'Failed attempt';
