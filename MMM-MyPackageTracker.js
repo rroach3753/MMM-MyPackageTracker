@@ -117,32 +117,23 @@ Module.register("MMM-MyPackageTracker", {
     return wrapper;
   },
 
-  renderItem(it) {
-    const row = document.createElement('div');
-    row.className = 'item';
+    renderItem(it) {
+      const row = document.createElement('div');
+      row.className = 'item';
 
-    if (this.config.showCarrierIcons) {
-      const icon = document.createElement('span');
-      icon.className = 'carrier-icon';
-      icon.style.width = icon.style.height = (this.config.iconSize || 16) + 'px';
-      if (this.config.iconColor) icon.style.color = '#' + this.config.iconColor.replace('#','');
-      // Use fallback local icon; CDN brand icons could be added later
-      icon.style.mask = icon.style.webkitMask = 'url(./public/icons/fallback-package.svg) no-repeat center / contain';
-      row.appendChild(icon);
+      // (icons are off while we debug, so skip the icon block)
+
+      const main = document.createElement('span');
+      const label = [it.trackingNumber, it.courier || '', it.description || '']
+        .filter(Boolean).join(' \u2014 ');
+      main.textContent = label || it.trackingNumber || 'Unknown';
+      row.appendChild(main);
+
+      if (this.config.openOnClick && it.link) {
+        row.style.cursor = 'pointer';
+        row.addEventListener('click', () => window.open(it.link, '_blank'));
+
+      }
+      return row;
     }
-
-    const main = document.createElement('span');
-    const label = [it.trackingNumber, it.courier || '', it.description || ''].filter(Boolean).join(' \u2014 ');
-    main.textContent = label;
-    row.appendChild(main);
-
-    if (this.config.openOnClick && it.link) {
-      row.style.cursor = 'pointer';
-      row.addEventListener('click', () => {
-        window.open(it.link, '_blank');
-      });
-    }
-
-    return row;
-  }
 });
