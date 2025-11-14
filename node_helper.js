@@ -89,7 +89,9 @@ module.exports = NodeHelper.create({
         return 'In transit';
 
       // Newly recognized milestones → keep them visible and meaningful:
-      case 'info_received':      // label created / preparing by shipper
+      case 'info_received':
+        return 'Info Received & Awaiting Pick Up';      // label created / preparing by shipper
+
       case 'pending':            // no events yet or not found
         return 'Pending';
 
@@ -106,7 +108,7 @@ module.exports = NodeHelper.create({
         return 'Other';
     }
   },
-  
+
   asItem(from) {
     const link = from && from.trackingNumber ? `https://www.ship24.com/trackings/${encodeURIComponent(from.trackingNumber)}` : null;
     return {
