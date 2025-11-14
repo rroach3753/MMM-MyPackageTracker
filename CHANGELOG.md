@@ -1,6 +1,10 @@
 
 # Changelog
 
+##v5.0.1 - 2025-11-13
+**Fixes**
+- Updated tracker information handling to properly display packages.
+
 ## v5.0.0 — 2025-11-13
 **Fixes & Hardening**
 - Default Ship24 base switched to `https://api.ship24.com/public/v1` to match keys provisioned on that route family.

@@ -97,18 +97,26 @@ module.exports = NodeHelper.create({
     const page = 1, size = Math.max(1, Number(this.cfg.listPageSize)||50);
     const url = `${this.base}/trackers?page=${page}&size=${size}`;
     const json = await this.httpJson('GET', url);
-    const dataArr = (json && (json.data || json.trackers || json.items)) || [];
+
+    // --- FIX: normalize array across response shapes ---
+    const root = (json && json.data) ? json.data : json;
+    const dataArr = Array.isArray(root) ? root
+                  : Array.isArray(root?.trackers) ? root.trackers
+                  : Array.isArray(root?.items) ? root.items
+                  : [];
+    // ---------------------------------------------------
+
     const ids = [];
     const items = [];
     for (const entry of dataArr) {
       const trackerId = entry.trackerId || entry.id || (entry.tracker && entry.tracker.trackerId);
       if (trackerId) ids.push(trackerId);
     }
+
     for (const id of ids) {
       const resJson = await this.httpJson('GET', `${this.base}/trackers/${encodeURIComponent(id)}/results`);
-      // Normalize minimal fields for UI
-      const tracker = (resJson && (resJson.tracker || resJson.data && resJson.data.tracker)) || {};
-      const shipment = (resJson && (resJson.shipment || resJson.data && resJson.data.shipment)) || {};
+      const tracker = (resJson && (resJson.tracker || resJson.data?.tracker)) || {};
+      const shipment = (resJson && (resJson.shipment || resJson.data?.shipment)) || {};
       const item = this.asItem({
         trackingNumber: tracker.trackingNumber,
         courierCode: tracker.courierCode,

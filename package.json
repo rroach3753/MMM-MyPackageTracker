@@ -1,6 +1,6 @@
 {
   "name": "MMM-MyPackageTracker",
-  "version": "5.0.0",
+  "version": "5.0.1",
   "description": "MagicMirror\u00b2 module to display parcels from Ship24 with list/seed modes, auto-discovery of Ship24 base, empty-state banner, and rate-limit backoff.",
   "main": "MMM-MyPackageTracker.js",
   "author": "Rickey Roach + Copilot",
