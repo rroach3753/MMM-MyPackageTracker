@@ -75,37 +75,19 @@ module.exports = NodeHelper.create({
 
   mapMilestone(ms) {
     const m = (ms || '').toLowerCase();
-
-    // Map Ship24 normalized milestones to your display buckets:
+    // Ship24 normalized milestones (docs): info_received, in_transit, out_for_delivery,
+    // failed_attempt, available_for_pickup, delivered, exception, pending
     // https://docs.ship24.com/status/
     switch (m) {
-      case 'delivered':
-        return 'Delivered';
-
-      case 'out_for_delivery':
-        return 'Out for delivery';
-
-      case 'in_transit':
-        return 'In transit';
-
-      // Newly recognized milestones → keep them visible and meaningful:
+      case 'delivered':             return 'Delivered';
+      case 'out_for_delivery':      return 'Out for delivery';
+      case 'in_transit':            return 'In transit';
       case 'info_received':
-        return 'Info Received & Awaiting Pick Up';      // label created / preparing by shipper
-
-      case 'pending':            // no events yet or not found
-        return 'Pending';
-
-      case 'available_for_pickup':
-        return 'To pick up';
-
-      case 'failed_attempt':
-        return 'Failed attempt';
-
-      case 'exception':
-        return 'Exception';
-
-      default:
-        return 'Other';
+      case 'pending':               return 'Pending';
+      case 'available_for_pickup':  return 'To pick up';
+      case 'failed_attempt':        return 'Failed attempt';
+      case 'exception':             return 'Exception';
+      default:                      return 'Other';
     }
   },
 
@@ -142,14 +124,15 @@ module.exports = NodeHelper.create({
 
     for (const id of ids) {
       const resJson = await this.httpJson('GET', `${this.base}/trackers/${encodeURIComponent(id)}/results`);
-      const tracker = (resJson && (resJson.tracker || resJson.data?.tracker)) || {};
-      const shipment = (resJson && (resJson.shipment || resJson.data?.shipment)) || {};
+      const tracker  = (resJson?.tracker)  || (resJson?.data?.tracker)  || {};
+      const shipment = (resJson?.shipment) || (resJson?.data?.shipment) || {};
       const item = this.asItem({
         trackingNumber: tracker.trackingNumber,
         courierCode: tracker.courierCode,
         description: tracker.shipmentReference,
-        statusMilestone: shipment.statusMilestone
+        statusMilestone: shipment.statusMilestone       // <-- Key line
       });
+
       items.push(item);
     }
     return items;
