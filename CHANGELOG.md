@@ -4,6 +4,7 @@
 ##v5.0.1 - 2025-11-13
 **Fixes**
 - Updated tracker information handling to properly display packages.
+- Updated the Milestone Map for cleaner tracking and sorting.
 
 ## v5.0.0 — 2025-11-13
 **Fixes & Hardening**
