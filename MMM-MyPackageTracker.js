@@ -98,8 +98,21 @@ Module.register("MMM-MyPackageTracker", {
         wrapper.appendChild(title);
         groups[g].forEach(it => wrapper.appendChild(this.renderItem(it)));
       });
-    } else {
-      items.forEach(it => wrapper.appendChild(this.renderItem(it)));
+    } else { 
+      items.forEach((it, idx) => {
+        try {
+          wrapper.appendChild(this.renderItem(it));
+        } catch (e) {
+          if (this.config.debug) {
+            const err = document.createElement('div');
+            err.className = 'error';
+            err.textContent = `Render error on item #${idx}: ${e && e.message || e}`;
+            wrapper.appendChild(err);
+            console.error('[MMM-MyPackageTracker] renderItem failed:', e, it);
+          }
+        }
+      });
+
     }
     return wrapper;
   },
