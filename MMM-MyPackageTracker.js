@@ -1,5 +1,5 @@
 /*
- * MMM-MyPackageTracker v5.0.1
+ * MMM-MyPackageTracker v5.0.2
  */
 Module.register("MMM-MyPackageTracker", {
   defaults: {
@@ -15,13 +15,29 @@ Module.register("MMM-MyPackageTracker", {
     groupByStatus: true,
     showHeaderCount: true,
     showCarrierIcons: true,
-    iconSize: 16,
+    iconSize: 20,
     iconColor: null,
-    openOnClick: true,
-    showTrackingLinks: true,
+    openOnClick: false,
+    showTrackingLinks: false,
 
     // Dev
     debug: false
+  },
+
+  // Sorting priority helper (lower number = earlier in list)
+  statusOrder(m) {
+    const k = (m || '').toLowerCase();
+    const pri = {
+      out_for_delivery: 0,
+      in_transit: 1,
+      available_for_pickup: 2,
+      failed_attempt: 3,
+      info_received: 4,
+      pending: 4,
+      exception: 5,
+      delivered: 6
+    };
+    return (pri[k] ?? 99);
   },
 
   start() {
@@ -83,7 +99,17 @@ Module.register("MMM-MyPackageTracker", {
       return wrapper;
     }
 
+    // Copy and sort items according to status → courier → title → tracking
     let items = this.items.slice(0, this.config.maxItems || this.items.length);
+    items.sort((a, b) => {
+      const sa = this.statusOrder(a.group), sb = this.statusOrder(b.group);
+      if (sa !== sb) return sa - sb;
+      const ca = (a.courier || '').localeCompare(b.courier || '', undefined, {sensitivity:'base'});
+      if (ca !== 0) return ca;
+      const ta = (a.description || '').localeCompare(b.description || '', undefined, {sensitivity:'base'});
+      if (ta !== 0) return ta;
+      return (a.trackingNumber || '').localeCompare(b.trackingNumber || '', undefined, {sensitivity:'base'});
+    });
 
     if (this.config.groupByStatus) {
       const groups = items.reduce((acc, it) => {
@@ -91,7 +117,7 @@ Module.register("MMM-MyPackageTracker", {
         acc[it.group || 'Other'].push(it);
         return acc;
       }, {});
-      Object.keys(groups).sort().forEach(g => {
+      Object.keys(groups).sort((a,b)=> this.statusOrder(a) - this.statusOrder(b)).forEach(g => {
         const title = document.createElement('div');
         title.className = 'group-title';
         title.textContent = g;
@@ -120,7 +146,6 @@ Module.register("MMM-MyPackageTracker", {
     row.className = 'item';
 
     if (this.config.showCarrierIcons) {
-      // Use <img> for broad compatibility
       const icon = document.createElement('img');
       icon.className = 'carrier-icon';
       icon.width = icon.height = (this.config.iconSize || 16);
@@ -129,16 +154,21 @@ Module.register("MMM-MyPackageTracker", {
     }
 
     const main = document.createElement('span');
-    const label = [it.trackingNumber, it.courier || '', it.description || '']
-      .filter(Boolean).join(' \u2014 ');
+    const debugMilestone = this.config.debug && it.group ? ` [${it.group}]` : '';
+
+    // Carrier — Title — Tracking Number
+    const parts = [];
+    if (it.courier)         parts.push(it.courier);
+    if (it.description)     parts.push(it.description + debugMilestone);
+    if (it.trackingNumber)  parts.push(it.trackingNumber);
+
+    const label = parts.join(' \u2014 ');
     main.textContent = label || it.trackingNumber || 'Unknown';
     row.appendChild(main);
 
     if (this.config.openOnClick && it.link) {
       row.style.cursor = 'pointer';
-      row.addEventListener('click', () => {
-        window.open(it.link, '_blank');
-      });
+      row.addEventListener('click', () => window.open(it.link, '_blank'));
     }
 
     return row;

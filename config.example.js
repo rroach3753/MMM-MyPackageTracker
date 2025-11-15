@@ -17,9 +17,9 @@
     groupByStatus: true,
     showHeaderCount: true,
     showCarrierIcons: true,
-    iconSize: 16,
-    openOnClick: true,
-    showTrackingLinks: true,
+    iconSize: 20,
+    openOnClick: false,
+    showTrackingLinks: false,
     debug: false
   }
 }
