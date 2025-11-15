@@ -1,5 +1,1 @@
-
-.MMM-MyPackageTracker .empty, .MMM-MyPackageTracker .error { color: #f66; font-size: 12px; }
-.MMM-MyPackageTracker .group-title { margin-top: 8px; font-weight: 600; }
-.MMM-MyPackageTracker .item { display: flex; align-items: center; gap: 8px; margin: 2px 0; }
-.MMM-MyPackageTracker .carrier-icon { width: 16px; height: 16px; display: inline-block; }
+.MMM-MyPackageTracker .item{display:flex;gap:8px;margin:2px 0;align-items:center}
