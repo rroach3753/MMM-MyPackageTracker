@@ -1,5 +1,5 @@
 /*
- * MMM-MyPackageTracker v5.0.0
+ * MMM-MyPackageTracker v5.0.1
  */
 Module.register("MMM-MyPackageTracker", {
   defaults: {
@@ -83,8 +83,8 @@ Module.register("MMM-MyPackageTracker", {
       return wrapper;
     }
 
-    // Optionally group by status
     let items = this.items.slice(0, this.config.maxItems || this.items.length);
+
     if (this.config.groupByStatus) {
       const groups = items.reduce((acc, it) => {
         acc[it.group || 'Other'] = acc[it.group || 'Other'] || [];
@@ -98,11 +98,10 @@ Module.register("MMM-MyPackageTracker", {
         wrapper.appendChild(title);
         groups[g].forEach(it => wrapper.appendChild(this.renderItem(it)));
       });
-    } else { 
+    } else {
       items.forEach((it, idx) => {
-        try {
-          wrapper.appendChild(this.renderItem(it));
-        } catch (e) {
+        try { wrapper.appendChild(this.renderItem(it)); }
+        catch (e) {
           if (this.config.debug) {
             const err = document.createElement('div');
             err.className = 'error';
@@ -112,28 +111,36 @@ Module.register("MMM-MyPackageTracker", {
           }
         }
       });
-
     }
     return wrapper;
   },
 
-    renderItem(it) {
-      const row = document.createElement('div');
-      row.className = 'item';
+  renderItem(it) {
+    const row = document.createElement('div');
+    row.className = 'item';
 
-      // (icons are off while we debug, so skip the icon block)
-
-      const main = document.createElement('span');
-      const label = [it.trackingNumber, it.courier || '', it.description || '']
-        .filter(Boolean).join(' \u2014 ');
-      main.textContent = label || it.trackingNumber || 'Unknown';
-      row.appendChild(main);
-
-      if (this.config.openOnClick && it.link) {
-        row.style.cursor = 'pointer';
-        row.addEventListener('click', () => window.open(it.link, '_blank'));
-
-      }
-      return row;
+    if (this.config.showCarrierIcons) {
+      // Use <img> for broad compatibility
+      const icon = document.createElement('img');
+      icon.className = 'carrier-icon';
+      icon.width = icon.height = (this.config.iconSize || 16);
+      icon.src = this.file('public/icons/fallback-package.svg');
+      row.appendChild(icon);
     }
+
+    const main = document.createElement('span');
+    const label = [it.trackingNumber, it.courier || '', it.description || '']
+      .filter(Boolean).join(' \u2014 ');
+    main.textContent = label || it.trackingNumber || 'Unknown';
+    row.appendChild(main);
+
+    if (this.config.openOnClick && it.link) {
+      row.style.cursor = 'pointer';
+      row.addEventListener('click', () => {
+        window.open(it.link, '_blank');
+      });
+    }
+
+    return row;
+  }
 });

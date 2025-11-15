@@ -1,5 +1,5 @@
 /*
- * MMM-MyPackageTracker v5.0.0 — node_helper
+ * MMM-MyPackageTracker v5.0.1 — node_helper
  */
 const NodeHelper = require('node_helper');
 const fetch = require('node-fetch');
@@ -21,9 +21,7 @@ module.exports = NodeHelper.create({
     this.timer = null;
   },
 
-  stop() {
-    if (this.timer) clearInterval(this.timer);
-  },
+  stop() { if (this.timer) clearInterval(this.timer); },
 
   socketNotificationReceived(notification, payload) {
     if (notification === 'CONFIG') {
@@ -37,12 +35,10 @@ module.exports = NodeHelper.create({
           this.sendSocketNotification('BASE_SELECTED', { base: this.base });
           this.cycle();
           if (this.timer) clearInterval(this.timer);
-          const interval = Math.max(60*1000, Number(this.cfg.pollIntervalMs)|| (5*60*1000));
+          const interval = Math.max(60*1000, Number(this.cfg.pollIntervalMs) || (5*60*1000));
           this.timer = setInterval(() => this.cycle(), interval);
         })
-        .catch(err => {
-          this.sendSocketNotification('ERROR', { message: 'Auto-discovery failed: ' + (err && err.message || err) });
-        });
+        .catch(err => this.sendSocketNotification('ERROR', { message: 'Auto-discovery failed: ' + (err && err.message || err) }));
     }
   },
 
@@ -52,22 +48,16 @@ module.exports = NodeHelper.create({
         const url = `${b}/trackers?page=1&size=1`;
         const res = await fetch(url, { headers: { 'Authorization': `Bearer ${this.cfg.ship24ApiKey}`, 'Accept':'application/json' }});
         const ct = (res.headers.get('content-type')||'').toLowerCase();
-        if (res.ok && ct.includes('application/json')) {
-          this.base = b; return;
-        }
-      } catch (e) { /* try next */ }
+        if (res.ok && ct.includes('application/json')) { this.base = b; return; }
+      } catch (_) { /* try next */ }
     }
     throw new Error('No Ship24 route accepted this key (tried /public/v1, /v1, unversioned)');
   },
 
   async cycle() {
     try {
-      const items = (this.cfg.mode === 'seed') ?
-        await this.seedMode() : await this.listMode();
-      this.sendSocketNotification('DATA', {
-        items,
-        meta: { base: this.base, lastRunAt: dayjs().toISOString() }
-      });
+      const items = (this.cfg.mode === 'seed') ? await this.seedMode() : await this.listMode();
+      this.sendSocketNotification('DATA', { items, meta: { base: this.base, lastRunAt: dayjs().toISOString() }});
     } catch (err) {
       this.sendSocketNotification('ERROR', { message: (err && err.message) || String(err) });
     }
@@ -75,14 +65,11 @@ module.exports = NodeHelper.create({
 
   mapMilestone(ms) {
     const m = (ms || '').toLowerCase();
-    // Ship24 normalized milestones (docs): info_received, in_transit, out_for_delivery,
-    // failed_attempt, available_for_pickup, delivered, exception, pending
-    // https://docs.ship24.com/status/
     switch (m) {
       case 'delivered':             return 'Delivered';
       case 'out_for_delivery':      return 'Out for delivery';
       case 'in_transit':            return 'In transit';
-      case 'info_received':         return 'Info received';
+      case 'info_received':
       case 'pending':               return 'Pending';
       case 'available_for_pickup':  return 'To pick up';
       case 'failed_attempt':        return 'Failed attempt';
@@ -92,49 +79,51 @@ module.exports = NodeHelper.create({
   },
 
   asItem(from) {
-    const link = from && from.trackingNumber ? `https://www.ship24.com/trackings/${encodeURIComponent(from.trackingNumber)}` : null;
-    return {
-      trackingNumber: from.trackingNumber,
-      courier: (from.courierCode && from.courierCode[0]) || from.courier || null,
-      description: from.description || from.shipmentReference || null,
-      group: this.mapMilestone(from.statusMilestone),
-      link
-    };
+    const tn   = from.trackingNumber || null;
+    const cc0  = Array.isArray(from.courierCode) && from.courierCode.length ? from.courierCode[0] : (from.courier || null);
+    const desc = from.description || null;
+    const link = tn ? `https://www.ship24.com/trackings/${encodeURIComponent(tn)}` : null;
+    return { trackingNumber: tn, courier: cc0, description: desc, group: this.mapMilestone(from.statusMilestone), link };
   },
 
   async listMode() {
-    const page = 1, size = Math.max(1, Number(this.cfg.listPageSize)||50);
+    const page = 1, size = Math.max(1, Number(this.cfg.listPageSize) || 50);
     const url = `${this.base}/trackers?page=${page}&size=${size}`;
     const json = await this.httpJson('GET', url);
 
-    // --- FIX: normalize array across response shapes ---
     const root = (json && json.data) ? json.data : json;
     const dataArr = Array.isArray(root) ? root
                   : Array.isArray(root?.trackers) ? root.trackers
                   : Array.isArray(root?.items) ? root.items
                   : [];
-    // ---------------------------------------------------
 
-    const ids = [];
-    const items = [];
+    if (this.cfg.debug) console.log('[MMM-MyPackageTracker] list: trackers_count =', dataArr.length);
+
+    const index = new Map();
     for (const entry of dataArr) {
-      const trackerId = entry.trackerId || entry.id || (entry.tracker && entry.tracker.trackerId);
-      if (trackerId) ids.push(trackerId);
+      const id = entry.trackerId || entry.id || entry?.tracker?.trackerId;
+      if (!id) continue;
+      index.set(id, {
+        trackingNumber: entry.trackingNumber || entry?.tracker?.trackingNumber || null,
+        courierCode: Array.isArray(entry.courierCode) ? entry.courierCode : (Array.isArray(entry?.tracker?.courierCode) ? entry.tracker.courierCode : [])
+      });
     }
 
-    for (const id of ids) {
-      const resJson = await this.httpJson('GET', `${this.base}/trackers/${encodeURIComponent(id)}/results`);
+    const items = [];
+    for (const [id, fb] of index.entries()) {
+      const resJson  = await this.httpJson('GET', `${this.base}/trackers/${encodeURIComponent(id)}/results`);
       const tracker  = (resJson?.tracker)  || (resJson?.data?.tracker)  || {};
       const shipment = (resJson?.shipment) || (resJson?.data?.shipment) || {};
-      const item = this.asItem({
-        trackingNumber: tracker.trackingNumber,
-        courierCode: tracker.courierCode,
-        description: tracker.shipmentReference,
-        statusMilestone: shipment.statusMilestone       // <-- Key line
-      });
 
+      const tn  = tracker.trackingNumber || fb.trackingNumber || null;
+      const ccs = Array.isArray(tracker.courierCode) && tracker.courierCode.length ? tracker.courierCode : (Array.isArray(fb.courierCode) ? fb.courierCode : []);
+      const ms  = shipment.statusMilestone || null;
+
+      const item = this.asItem({ trackingNumber: tn, courierCode: ccs, description: tracker.shipmentReference, statusMilestone: ms });
+      if (this.cfg.debug && items.length < 2) console.log('[MMM-MyPackageTracker] sample item:', item);
       items.push(item);
     }
+
     return items;
   },
 
@@ -142,17 +131,12 @@ module.exports = NodeHelper.create({
     const items = [];
     const list = Array.isArray(this.cfg.seedTrackers) ? this.cfg.seedTrackers : [];
     for (const t of list) {
-      const body = {
-        trackingNumber: t.trackingNumber,
-        courier: t.courier || undefined,
-        description: t.description || undefined
-      };
+      const body = { trackingNumber: t.trackingNumber, courier: t.courier || undefined, description: t.description || undefined };
       const json = await this.httpJson('POST', `${this.base}/trackers/track`, body);
-      // The response can include an array under data.trackings[]. Use first.
-      const trackings = json && json.data && (json.data.trackings || json.data || []);
+      const trackings = json?.data?.trackings || json?.data || [];
       const first = Array.isArray(trackings) ? trackings[0] : trackings;
-      const tracker = (first && (first.tracker || first)) || {};
-      const shipment = (first && first.shipment) || {};
+      const tracker = (first?.tracker) || first || {};
+      const shipment = first?.shipment || {};
       const item = this.asItem({
         trackingNumber: tracker.trackingNumber,
         courierCode: tracker.courierCode,
@@ -165,10 +149,7 @@ module.exports = NodeHelper.create({
   },
 
   async httpJson(method, url, body) {
-    const headers = {
-      'Authorization': `Bearer ${this.cfg.ship24ApiKey}`,
-      'Accept': 'application/json'
-    };
+    const headers = { 'Authorization': `Bearer ${this.cfg.ship24ApiKey}`, 'Accept': 'application/json' };
     if (body) headers['Content-Type'] = 'application/json';
 
     let attempt = 0;
@@ -177,7 +158,6 @@ module.exports = NodeHelper.create({
       const res = await fetch(url, { method, headers, body: body ? JSON.stringify(body) : undefined });
       const ct = (res.headers.get('content-type') || '').toLowerCase();
       if (res.status === 429) {
-        // backoff with jitter
         const base = 1000 * Math.pow(2, Math.min(attempt, 5));
         const wait = Math.floor(base + Math.random() * 500);
         if (this.cfg.debug) console.log('[MMM-MyPackageTracker] 429; backing off', wait, 'ms');

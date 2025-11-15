@@ -6,8 +6,8 @@
   header: "Packages",
   config: {
     ship24ApiKey: "YOUR_SHIP24_KEY",
-    // ship24BaseUrl: "https://api.ship24.com/public/v1", // optional
-    mode: "list", // or "seed"
+    ship24BaseUrl: "https://api.ship24.com/public/v1",
+    mode: "list",
     seedTrackers: [
       // { trackingNumber: "9405511202575421535949", courier: "usps", description: "Home" }
     ],
@@ -18,7 +18,6 @@
     showHeaderCount: true,
     showCarrierIcons: true,
     iconSize: 16,
-    iconColor: null,
     openOnClick: true,
     showTrackingLinks: true,
     debug: false
